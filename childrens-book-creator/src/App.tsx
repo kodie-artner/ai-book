@@ -1,21 +1,25 @@
-import { useState } from 'react'
-import { ChakraProvider } from '@chakra-ui/react'
-import { Login } from './components/Login'
-import { BookCreator } from './components/BookCreator'
-import { APIConfig } from './types'
+import { useState } from 'react';
+import { ChakraProvider } from '@chakra-ui/react';
+import { Login } from './components/Login';
+import { BookCreator } from './components/BookCreator';
+import { APIConfig } from './types';
 
 function App() {
-  const [apiConfig, setApiConfig] = useState<APIConfig | null>(null)
+  const [config, setConfig] = useState<APIConfig | null>(null);
+
+  const handleLogin = (newConfig: APIConfig) => {
+    setConfig(newConfig);
+  };
 
   return (
     <ChakraProvider>
-      {!apiConfig ? (
-        <Login onApiKeySubmit={setApiConfig} />
+      {config ? (
+        <BookCreator config={config} />
       ) : (
-        <BookCreator apiConfig={apiConfig} />
+        <Login onLogin={handleLogin} />
       )}
     </ChakraProvider>
-  )
+  );
 }
 
-export default App
+export default App;

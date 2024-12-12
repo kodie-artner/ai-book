@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Box,
   Button,
@@ -11,28 +11,80 @@ import {
   FormControl,
   FormLabel,
   FormHelperText,
+  useToast,
 } from '@chakra-ui/react'
 import { APIConfig, AIProvider } from '../types'
 
+const STORAGE_KEY = 'ai_book_api_config'
+
 interface LoginProps {
-  onApiKeySubmit: (config: APIConfig) => void
+  onLogin: (config: APIConfig) => void
 }
 
-export const Login = ({ onApiKeySubmit }: LoginProps) => {
+export const Login = ({ onLogin }: LoginProps) => {
   const [apiKey, setApiKey] = useState('')
   const [stabilityApiKey, setStabilityApiKey] = useState('')
   const [provider, setProvider] = useState<AIProvider>('openai')
+  const toast = useToast()
+
+  useEffect(() => {
+    const savedConfig = localStorage.getItem(STORAGE_KEY)
+    if (savedConfig) {
+      try {
+        const config = JSON.parse(savedConfig) as APIConfig
+        setProvider(config.provider)
+        setApiKey(config.apiKey)
+        if (config.stabilityApiKey) {
+          setStabilityApiKey(config.stabilityApiKey)
+        }
+      } catch (error) {
+        console.error('Error loading saved config:', error)
+        localStorage.removeItem(STORAGE_KEY)
+      }
+    }
+  }, [])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (apiKey.trim()) {
-      const config: APIConfig = {
-        provider,
-        apiKey,
-        ...(provider === 'gemini' && { stabilityApiKey }),
-      }
-      onApiKeySubmit(config)
+
+    if (!apiKey) {
+      toast({
+        title: 'Error',
+        description: 'Please enter an API key',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      })
+      return
     }
+
+    if (provider === 'gemini' && !stabilityApiKey) {
+      toast({
+        title: 'Error',
+        description: 'Please enter a Stability AI API key for image generation',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      })
+      return
+    }
+
+    const config: APIConfig = {
+      provider,
+      apiKey,
+      ...(provider === 'gemini' && { stabilityApiKey }),
+    }
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(config))
+
+    onLogin(config)
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem(STORAGE_KEY)
+    setApiKey('')
+    setStabilityApiKey('')
+    setProvider('openai')
   }
 
   return (
@@ -53,14 +105,14 @@ export const Login = ({ onApiKeySubmit }: LoginProps) => {
                   <option value="gemini">Google Gemini + Stability AI</option>
                 </Select>
                 <FormHelperText>
-                  {provider === 'gemini' 
-                    ? 'Uses Google Gemini for text and Stability AI for images' 
+                  {provider === 'gemini'
+                    ? 'Uses Google Gemini for text and Stability AI for images'
                     : 'Uses OpenAI for both text and images'}
                 </FormHelperText>
               </FormControl>
-              <FormControl>
+              <FormControl isRequired>
                 <FormLabel>
-                  {provider === 'openai' ? 'OpenAI API Key' : 'Google Gemini API Key'}
+                  {provider === 'openai' ? 'OpenAI API Key' : 'Google AI API Key'}
                 </FormLabel>
                 <Input
                   type="password"
@@ -72,7 +124,7 @@ export const Login = ({ onApiKeySubmit }: LoginProps) => {
                 />
               </FormControl>
               {provider === 'gemini' && (
-                <FormControl>
+                <FormControl isRequired>
                   <FormLabel>Stability AI API Key</FormLabel>
                   <Input
                     type="password"
@@ -88,6 +140,16 @@ export const Login = ({ onApiKeySubmit }: LoginProps) => {
               <Button type="submit" colorScheme="blue" w="100%">
                 Start Creating Stories
               </Button>
+              {localStorage.getItem(STORAGE_KEY) && (
+                <Button
+                  onClick={handleLogout}
+                  variant="outline"
+                  colorScheme="red"
+                  w="100%"
+                >
+                  Clear Saved API Keys
+                </Button>
+              )}
             </VStack>
           </form>
         </VStack>
