@@ -1,8 +1,14 @@
-# Children's Book Creator
+# AI Book Projects
+
+This repository contains AI-powered book creation projects.
+
+## Projects
+
+### Children's Book Creator
 
 An AI-powered web application that creates personalized children's stories with custom illustrations.
 
-## Features
+#### Features
 
 - Generate custom children's stories based on child's interests and preferences
 - Choose between two AI providers:
@@ -11,7 +17,7 @@ An AI-powered web application that creates personalized children's stories with 
 - Beautiful, responsive UI built with React and Chakra UI
 - Secure API key management
 
-## Prerequisites
+#### Prerequisites
 
 - Node.js (v16 or higher)
 - npm or yarn
@@ -19,11 +25,10 @@ An AI-powered web application that creates personalized children's stories with 
   - For OpenAI mode: OpenAI API key
   - For Gemini mode: Google AI API key + Stability AI API key
 
-## Getting Started
+#### Getting Started
 
-1. Clone the repository:
+1. Navigate to the project directory:
 ```bash
-git clone <repository-url>
 cd childrens-book-creator
 ```
 
@@ -48,7 +53,7 @@ yarn dev
 
 5. Open your browser and navigate to `http://localhost:5173`
 
-## Usage
+#### Usage
 
 1. Choose your AI provider (OpenAI or Gemini)
 2. Enter the required API key(s)
