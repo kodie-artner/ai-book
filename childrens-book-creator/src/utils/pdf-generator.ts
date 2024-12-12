@@ -8,6 +8,25 @@ const CONTENT_WIDTH = PAGE_WIDTH - (2 * MARGIN);
 const CONTENT_HEIGHT = PAGE_HEIGHT - (2 * MARGIN);
 const IMAGE_HEIGHT = CONTENT_HEIGHT * 0.6;
 
+async function getBase64FromUrl(url: string): Promise<string> {
+  try {
+    const response = await fetch(url, {
+      mode: 'cors',
+      cache: 'no-cache',
+    });
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error('Error converting image to base64:', error);
+    throw error;
+  }
+}
+
 export async function generatePDF(book: Book): Promise<void> {
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -41,11 +60,22 @@ export async function generatePDF(book: Book): Promise<void> {
 
     // Add image
     try {
+      // Convert image URL to base64
+      let imageData: string;
+      if (page.imageUrl.startsWith('data:')) {
+        // If it's already a base64 string, use it directly
+        imageData = page.imageUrl;
+      } else {
+        // Convert URL to base64
+        imageData = await getBase64FromUrl(page.imageUrl);
+      }
+
+      // Create an image element to get dimensions
       const img = new Image();
-      img.src = page.imageUrl;
       await new Promise((resolve, reject) => {
         img.onload = resolve;
         img.onerror = reject;
+        img.src = imageData;
       });
 
       const aspectRatio = img.width / img.height;
@@ -53,8 +83,8 @@ export async function generatePDF(book: Book): Promise<void> {
       const imageHeight = imageWidth / aspectRatio;
 
       doc.addImage(
-        page.imageUrl,
-        'JPEG',
+        imageData,
+        'PNG',
         MARGIN + (CONTENT_WIDTH - imageWidth) / 2,
         MARGIN,
         imageWidth,
@@ -95,6 +125,11 @@ export async function generatePDF(book: Book): Promise<void> {
       doc.setTextColor(255, 0, 0);
       doc.text('Error loading image', MARGIN, MARGIN + 20);
       doc.setTextColor(0, 0, 0);
+      
+      // Still add the text content
+      doc.setFontSize(12);
+      const textLines = doc.splitTextToSize(page.content, CONTENT_WIDTH);
+      doc.text(textLines, MARGIN, MARGIN + 40);
     }
   }
 

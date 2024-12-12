@@ -1,6 +1,6 @@
 # AI Book Projects
 
-This repository contains AI-powered book creation projects.
+This repository contains AI-powered book creation projects created entirely using Windsur AI.
 
 ## Projects
 

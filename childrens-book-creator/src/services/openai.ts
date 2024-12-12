@@ -36,7 +36,7 @@ export class OpenAIService implements AIService {
       Important: Do NOT include any word count indicators like "~(30 words)" at the beginning of each scene.`;
 
       const storyCompletion = await this.openai.chat.completions.create({
-        model: "gpt-4",
+        model: "gpt-3.5-turbo",
         messages: [{ 
           role: "system", 
           content: "You are a children's story writer. Write engaging, age-appropriate content. Never include word count indicators in the story text."
@@ -45,6 +45,8 @@ export class OpenAIService implements AIService {
           role: "user", 
           content: storyPrompt 
         }],
+        temperature: 0.7,
+        max_tokens: 2000,
       });
 
       const story = storyCompletion.choices[0]?.message?.content || '';
@@ -64,10 +66,23 @@ export class OpenAIService implements AIService {
         .slice(0, childInfo.storyOptions.pageCount); // Ensure we have exactly the requested number of pages
 
       const pages: StoryPage[] = [];
+      let artStyle = ''; // Store the art style description from the first image
 
       // Generate images for each scene
-      for (const sceneContent of scenes) {
-        const imagePrompt = `Create a child-friendly illustration for a children's book scene: ${sceneContent}`;
+      for (const [index, sceneContent] of scenes.entries()) {
+        let imagePrompt = `Create a child-friendly illustration for a children's book scene: ${sceneContent}. `;
+        
+        if (index === 0) {
+          // For the first image, establish the art style based on the story theme and child's interests
+          imagePrompt += `Style: Create a ${childInfo.age}-appropriate, engaging illustration with a consistent art style that will be maintained throughout the book. `;
+          imagePrompt += `The style should appeal to a ${childInfo.age}-year-old who loves ${childInfo.interests.join(', ')}. `;
+          imagePrompt += `Make it colorful, whimsical, and safe for children. The art style should be memorable and distinctive.`;
+        } else {
+          // For subsequent images, reference the established style
+          imagePrompt += `Use the EXACT SAME art style, color palette, and character design as the previous illustrations. `;
+          imagePrompt += `Maintain perfect consistency with the previous images in terms of: character appearances, art style, level of detail, color scheme, and overall aesthetic. `;
+          imagePrompt += `This should look like it belongs in the same book as the previous illustrations.`;
+        }
 
         const imageResponse = await this.openai.images.generate({
           model: "dall-e-3",
@@ -75,7 +90,13 @@ export class OpenAIService implements AIService {
           size: "1024x1024",
           quality: "standard",
           n: 1,
+          style: "vivid", // Use vivid style for more consistent, illustration-like images
         });
+
+        // Store the art style description from the first image
+        if (index === 0 && imageResponse.data[0]?.revised_prompt) {
+          artStyle = imageResponse.data[0].revised_prompt;
+        }
 
         pages.push({
           content: sceneContent,
@@ -83,6 +104,11 @@ export class OpenAIService implements AIService {
           textPrompt: storyPrompt,
           imagePrompt: imagePrompt,
         });
+
+        // Add a small delay between image generations to avoid rate limits
+        if (index < scenes.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       }
 
       return pages;
